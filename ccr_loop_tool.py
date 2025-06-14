@@ -35,7 +35,7 @@ def run_precise_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, tolerance=0.005,
         monthly_tax = round(base_payment_rounded * T, 2)
         ltr_tax = round(q_value * T, 2)
 
-        first_payment = round(base_payment_rounded + monthly_tax + q_value + ltr_tax, 2)
+        first_payment = round(base_payment_rounded + monthly_tax + Q + ltr_tax, 2)
         ccr_tax = round(ccr_guess * T, 2)
 
         total = round(ccr_guess + ccr_tax + first_payment, 2)
@@ -50,4 +50,44 @@ def run_precise_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, tolerance=0.005,
             }
 
         if total > C:
-            max_ccr = ccr_gu
+            max_ccr = ccr_guess
+        else:
+            min_ccr = ccr_guess
+
+    return {
+        "CCR": None,
+        "CCR_Tax": None,
+        "First_Payment": None,
+        "Iterations": iteration,
+        "Total": None
+    }
+
+
+def main():
+    st.title("CCR Loop Debug Tool")
+
+    C = st.number_input("Down Payment (C)", value=1000.00)
+    M = st.number_input("Taxable Fees (M: Doc + Acq)", value=900.00)
+    Q = st.number_input("LTR Fee (Q)", value=62.50)
+    T = st.number_input("Tax Rate (T)", value=0.0725)
+    F = st.number_input("Money Factor (F)", value=0.00293)
+    N = st.number_input("Term (N)", value=36)
+    S = st.number_input("Cap Cost / MSRP (S)", value=25040.00)
+    R = st.number_input("Residual (R)", value=16276.00)
+
+    if st.button("Run Loop"):
+        result = run_precise_ccr_loop(C, M, Q, T, F, N, S, R)
+
+        if result["CCR"] is not None:
+            st.success("Loop completed!")
+            st.write(f"**CCR:** ${result['CCR']:.2f}")
+            st.write(f"**CCR Tax:** ${result['CCR_Tax']:.2f}")
+            st.write(f"**First Payment:** ${result['First_Payment']:.2f}")
+            st.write(f"**Iterations:** {result['Iterations']}")
+            st.write(f"**Total (Matched):** ${result['Total']:.2f}")
+        else:
+            st.error("Loop failed to converge within max iterations.")
+
+
+if __name__ == "__main__":
+    main()
