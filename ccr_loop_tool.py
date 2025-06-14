@@ -1,6 +1,6 @@
 import streamlit as st
 
-# Standalone CCR Loop Debug Tool
+# Standalone CCR Loop Debug Tool (Binary Search Version)
 
 def run_precise_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, tolerance=0.005, max_iterations=1000):
     """
@@ -23,9 +23,7 @@ def run_precise_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, tolerance=0.005,
 
     while iteration < max_iterations:
         iteration += 1
-        ccr_guess = min_ccr + ((max_ccr - min_ccr) * (1 - iteration / max_iterations))
-        if ccr_guess < 0:
-            break
+        ccr_guess = (min_ccr + max_ccr) / 2
 
         cap_cost = S + M
         adj_cap_cost = cap_cost - ccr_guess
@@ -59,6 +57,11 @@ def run_precise_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, tolerance=0.005,
                 "Total": total,
                 "History": history
             }
+
+        if total > C:
+            max_ccr = ccr_guess
+        else:
+            min_ccr = ccr_guess
 
     return {
         "CCR": None,
