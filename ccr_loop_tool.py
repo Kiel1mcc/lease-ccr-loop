@@ -1,8 +1,8 @@
 import streamlit as st
 
-# Revised CCR Loop using base payment as true first payment anchor
+# Revised CCR Loop where iterations are driven by increasing First Payment from base
 
-def run_hybrid_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, tolerance=0.005, linear_step=10.0, max_iterations=1000):
+def run_hybrid_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, tolerance=0.005, linear_step=5.0, max_iterations=1000):
     cap_cost = S + M
     iteration = 0
     history = []
@@ -12,23 +12,16 @@ def run_hybrid_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, tolerance=0.005, 
     rent_charge_start = (cap_cost + R) * F
     base_payment_start = depreciation_start + rent_charge_start
 
-    # Step 2: Set initial CCR as Down Payment - Base Payment (not including tax)
-    ccr_guess = C - base_payment_start
+    # Step 2: Start with base payment as First Payment
+    first_payment = round(base_payment_start, 2)
     best_guess = None
     best_total_diff = float("inf")
-    direction = None
 
     while iteration < max_iterations:
         iteration += 1
-        adj_cap_cost = cap_cost - ccr_guess
 
-        depreciation = (adj_cap_cost - R) / N
-        rent_charge = (adj_cap_cost + R) * F
-        base_payment = depreciation + rent_charge
-
-        # First Payment only equals base payment as requested
-        first_payment = round(base_payment, 2)
-
+        # Compute CCR based on this first payment
+        ccr_guess = C - first_payment
         ccr_tax = round(ccr_guess * T, 2)
         total = round(ccr_guess + ccr_tax + first_payment, 2)
 
@@ -40,21 +33,28 @@ def run_hybrid_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, tolerance=0.005, 
             best_guess = ccr_guess
 
         if diff <= tolerance:
-            return {"CCR": round(ccr_guess, 2), "CCR_Tax": ccr_tax, "First_Payment": first_payment, "Iterations": iteration, "Total": total, "History": history, "Base_Payment_Start": round(base_payment_start, 2)}
+            return {
+                "CCR": round(ccr_guess, 2),
+                "CCR_Tax": ccr_tax,
+                "First_Payment": first_payment,
+                "Iterations": iteration,
+                "Total": total,
+                "History": history,
+                "Base_Payment_Start": round(base_payment_start, 2)
+            }
 
-        # Adjust CCR Guess
-        if total > C:
-            if direction == "up":
-                linear_step /= 2
-            direction = "down"
-            ccr_guess -= linear_step
-        else:
-            if direction == "down":
-                linear_step /= 2
-            direction = "up"
-            ccr_guess += linear_step
+        # Increment First Payment to simulate more going toward payment and less toward CCR
+        first_payment += linear_step
 
-    return {"CCR": round(best_guess, 2), "CCR_Tax": round(best_guess * T, 2), "First_Payment": first_payment, "Iterations": iteration, "Total": round(best_guess + best_guess * T + first_payment, 2), "History": history, "Base_Payment_Start": round(base_payment_start, 2)}
+    return {
+        "CCR": round(best_guess, 2),
+        "CCR_Tax": round(best_guess * T, 2),
+        "First_Payment": first_payment,
+        "Iterations": iteration,
+        "Total": round(best_guess + best_guess * T + first_payment, 2),
+        "History": history,
+        "Base_Payment_Start": round(base_payment_start, 2)
+    }
 
 def main():
     st.title("CCR Hybrid Loop Debug Tool")
