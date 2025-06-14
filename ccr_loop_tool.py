@@ -15,15 +15,16 @@ def run_precise_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, tolerance=0.005,
     R = Residual Value
     """
 
-    min_ccr = 0.0
-    max_ccr = S - R
+    max_ccr = min(C, S - R)
     iteration = 0
 
     history = []
 
     while iteration < max_iterations:
         iteration += 1
-        ccr_guess = (min_ccr + max_ccr) / 2
+        ccr_guess = max_ccr - ((iteration - 1) * 0.01)  # decrement step
+        if ccr_guess < 0:
+            break
 
         cap_cost = S + M
         adj_cap_cost = cap_cost - ccr_guess
@@ -32,7 +33,7 @@ def run_precise_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, tolerance=0.005,
         rent_charge = (adj_cap_cost + R) * F
 
         base_payment = depreciation + rent_charge
-        monthly_tax = round(base_payment * T, 2)  # Avoid pre-rounding
+        monthly_tax = round(base_payment * T, 2)
         ltr_tax = round(q_value * T, 2)
 
         first_payment = round(base_payment + monthly_tax + Q + ltr_tax, 2)
@@ -57,11 +58,6 @@ def run_precise_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, tolerance=0.005,
                 "Total": total,
                 "History": history
             }
-
-        if total > C:
-            max_ccr = ccr_guess
-        else:
-            min_ccr = ccr_guess
 
     return {
         "CCR": None,
