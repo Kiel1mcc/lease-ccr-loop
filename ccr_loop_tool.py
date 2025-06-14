@@ -26,14 +26,8 @@ def run_hybrid_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, tolerance=0.005, 
         rent_charge = (adj_cap_cost + R) * F
         base_payment = depreciation + rent_charge
 
-        monthly_tax = round(base_payment * T, 2)
-        ltr_tax = round(q_value * T, 2)
-
-        # First iteration uses base payment only
-        if iteration == 1:
-            first_payment = round(base_payment, 2)
-        else:
-            first_payment = round(base_payment + monthly_tax + q_value + ltr_tax, 2)
+        # First Payment only equals base payment as requested
+        first_payment = round(base_payment, 2)
 
         ccr_tax = round(ccr_guess * T, 2)
         total = round(ccr_guess + ccr_tax + first_payment, 2)
