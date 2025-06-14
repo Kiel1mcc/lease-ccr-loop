@@ -1,6 +1,6 @@
 import streamlit as st
 
-# Revised CCR Loop using base payment to determine starting CCR
+# Revised CCR Loop using base payment to determine starting CCR and initial iteration as exact base
 
 def run_hybrid_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, tolerance=0.005, linear_step=10.0, max_iterations=1000):
     cap_cost = S + M
@@ -17,13 +17,11 @@ def run_hybrid_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, tolerance=0.005, 
     ltr_tax_start = round(q_value * T, 2)
     first_payment_start = round(base_payment_start + monthly_tax_start + q_value + ltr_tax_start, 2)
 
-    # Step 3: Starting CCR based on down payment - base payment
-    ccr_guess = C - first_payment_start
+    # Step 3: Set initial CCR as Down Payment - Base Payment
+    ccr_guess = C - base_payment_start
     best_guess = None
     best_total_diff = float("inf")
     direction = None
-
-    first_iteration_logged = False
 
     while iteration < max_iterations:
         iteration += 1
