@@ -1,6 +1,6 @@
 import streamlit as st
 
-# Revised CCR Loop where iterations are driven by increasing First Payment from base
+# Revised CCR Loop with dynamic CCR tied proportionally to first payment changes
 
 def run_hybrid_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, tolerance=0.005, linear_step=5.0, max_iterations=1000):
     cap_cost = S + M
@@ -12,7 +12,7 @@ def run_hybrid_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, tolerance=0.005, 
     rent_charge_start = (cap_cost + R) * F
     base_payment_start = depreciation_start + rent_charge_start
 
-    # Step 2: Start with base payment as First Payment
+    # Step 2: Start from base payment and move up
     first_payment = round(base_payment_start, 2)
     best_guess = None
     best_total_diff = float("inf")
@@ -20,8 +20,8 @@ def run_hybrid_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, tolerance=0.005, 
     while iteration < max_iterations:
         iteration += 1
 
-        # Compute CCR based on this first payment
-        ccr_guess = C - first_payment
+        # CCR is what remains after first payment
+        ccr_guess = max(C - first_payment, 0)
         ccr_tax = round(ccr_guess * T, 2)
         total = round(ccr_guess + ccr_tax + first_payment, 2)
 
@@ -43,7 +43,6 @@ def run_hybrid_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, tolerance=0.005, 
                 "Base_Payment_Start": round(base_payment_start, 2)
             }
 
-        # Increment First Payment to simulate more going toward payment and less toward CCR
         first_payment += linear_step
 
     return {
