@@ -1,29 +1,27 @@
 import streamlit as st
 
-# Updated Hybrid CCR Loop using base payment as first guess
+# Revised CCR Loop using base payment to determine starting CCR
 
 def run_hybrid_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, tolerance=0.005, linear_step=10.0, max_iterations=1000):
     cap_cost = S + M
     iteration = 0
     history = []
 
-    # Use base payment as estimated first payment, then CCR = C - estimated first payment
-    adj_cap_cost_start = cap_cost - C
-    depreciation_start = (adj_cap_cost_start - R) / N
-    rent_charge_start = (adj_cap_cost_start + R) * F
+    # Step 1: Calculate base payment
+    depreciation_start = (cap_cost - R) / N
+    rent_charge_start = (cap_cost + R) * F
     base_payment_start = depreciation_start + rent_charge_start
 
-    # Starting first payment estimate
+    # Step 2: Estimate first payment
     monthly_tax_start = round(base_payment_start * T, 2)
     ltr_tax_start = round(q_value * T, 2)
     first_payment_start = round(base_payment_start + monthly_tax_start + q_value + ltr_tax_start, 2)
 
-    ccr_guess = C - first_payment_start
+    # Step 3: Starting CCR based on down payment - base payment
+    ccr_guess = C - base_payment_start
     best_guess = None
     best_total_diff = float("inf")
-
     direction = None
-    previous_diff = None
 
     while iteration < max_iterations:
         iteration += 1
@@ -50,7 +48,7 @@ def run_hybrid_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, tolerance=0.005, 
         if diff <= tolerance:
             return {"CCR": round(ccr_guess, 2), "CCR_Tax": ccr_tax, "First_Payment": first_payment, "Iterations": iteration, "Total": total, "History": history}
 
-        # Determine direction
+        # Adjust CCR Guess
         if total > C:
             if direction == "up":
                 linear_step /= 2
