@@ -1,8 +1,8 @@
 import streamlit as st
 
-# Standalone CCR Loop Debug Tool (Binary Search Version)
+# CCR Linear Search from Down Payment
 
-def run_precise_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, tolerance=0.005, max_iterations=1000):
+def run_downward_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, step=0.01, tolerance=0.005):
     """
     Inputs:
     C = Total Cash Down (incl. lease cash if applied)
@@ -15,15 +15,12 @@ def run_precise_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, tolerance=0.005,
     R = Residual Value
     """
 
-    min_ccr = 0.0
-    max_ccr = min(C, S - R)
     iteration = 0
-
     history = []
 
-    while iteration < max_iterations:
+    ccr_guess = round(C, 2)
+    while ccr_guess >= 0:
         iteration += 1
-        ccr_guess = (min_ccr + max_ccr) / 2
 
         cap_cost = S + M
         adj_cap_cost = cap_cost - ccr_guess
@@ -58,10 +55,7 @@ def run_precise_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, tolerance=0.005,
                 "History": history
             }
 
-        if total > C:
-            max_ccr = ccr_guess
-        else:
-            min_ccr = ccr_guess
+        ccr_guess = round(ccr_guess - step, 2)
 
     return {
         "CCR": None,
@@ -72,9 +66,8 @@ def run_precise_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, tolerance=0.005,
         "History": history
     }
 
-
 def main():
-    st.title("CCR Loop Debug Tool")
+    st.title("CCR Linear Loop Debug Tool")
 
     C = st.number_input("Down Payment (C)", value=1000.00)
     M = st.number_input("Taxable Fees (M: Doc + Acq)", value=900.00)
@@ -85,8 +78,8 @@ def main():
     S = st.number_input("Cap Cost / MSRP (S)", value=25040.00)
     R = st.number_input("Residual (R)", value=16276.00)
 
-    if st.button("Run Loop"):
-        result = run_precise_ccr_loop(C, M, Q, T, F, N, S, R)
+    if st.button("Run Downward Loop"):
+        result = run_downward_ccr_loop(C, M, Q, T, F, N, S, R)
 
         if result["CCR"] is not None:
             st.success("Loop completed!")
@@ -106,8 +99,7 @@ def main():
                         f"Total = ${row['Total']:.2f}"
                     )
         else:
-            st.error("Loop failed to converge within max iterations.")
-
+            st.error("Loop failed to converge within downward steps.")
 
 if __name__ == "__main__":
     main()
