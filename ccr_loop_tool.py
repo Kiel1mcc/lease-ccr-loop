@@ -1,20 +1,28 @@
 import streamlit as st
 
-# Hybrid CCR Loop: Linear phase adjusts both CCR and First Payment, then switches to binary
+# Updated Hybrid CCR Loop using base payment as first guess
 
-def run_hybrid_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, tolerance=0.005, linear_step=100.0, max_iterations=1000):
+def run_hybrid_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, tolerance=0.005, linear_step=10.0, max_iterations=1000):
     cap_cost = S + M
     iteration = 0
     history = []
 
-    # Linear Phase: Start CCR at C, First Payment at 1, increase First Payment as CCR decreases
-    ccr_guess = C
-    first_payment_guess = 1.0
-    linear_floor = max(0.0, C - 5 * linear_step)
+    # Use base payment as estimated first payment, then CCR = C - estimated first payment
+    adj_cap_cost_start = cap_cost - C
+    depreciation_start = (adj_cap_cost_start - R) / N
+    rent_charge_start = (adj_cap_cost_start + R) * F
+    base_payment_start = depreciation_start + rent_charge_start
+
+    # Starting first payment estimate
+    monthly_tax_start = round(base_payment_start * T, 2)
+    ltr_tax_start = round(q_value * T, 2)
+    first_payment_start = round(base_payment_start + monthly_tax_start + q_value + ltr_tax_start, 2)
+
+    ccr_guess = C - first_payment_start
     best_guess = None
     best_total_diff = float("inf")
 
-    while ccr_guess >= linear_floor:
+    while ccr_guess >= 0 and iteration < max_iterations:
         iteration += 1
         adj_cap_cost = cap_cost - ccr_guess
 
@@ -25,65 +33,26 @@ def run_hybrid_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, tolerance=0.005, 
         monthly_tax = round(base_payment * T, 2)
         ltr_tax = round(q_value * T, 2)
 
-        first_payment = round(first_payment_guess, 2)
+        first_payment = round(base_payment + monthly_tax + q_value + ltr_tax, 2)
         ccr_tax = round(ccr_guess * T, 2)
         total = round(ccr_guess + ccr_tax + first_payment, 2)
 
         diff = abs(total - C)
+        history.append({"Iteration": iteration, "CCR_Guess": round(ccr_guess, 2), "CCR_Tax": ccr_tax, "First_Payment": first_payment, "Total": total})
+
         if diff < best_total_diff:
             best_total_diff = diff
             best_guess = ccr_guess
-            best_payment = first_payment
-
-        history.append({"Iteration": iteration, "CCR_Guess": round(ccr_guess, 2), "CCR_Tax": ccr_tax, "First_Payment": first_payment, "Total": total})
 
         if diff <= tolerance:
             return {"CCR": round(ccr_guess, 2), "CCR_Tax": ccr_tax, "First_Payment": first_payment, "Iterations": iteration, "Total": total, "History": history}
-
-        if diff < (linear_step * 1.5):
-            break
 
         ccr_guess -= linear_step
-        first_payment_guess += linear_step
 
-    # Binary Phase using best_guess and best_payment
-    min_ccr = max(0.0, best_guess - linear_step)
-    max_ccr = min(C, best_guess + linear_step)
-
-    while iteration < max_iterations:
-        iteration += 1
-        ccr_guess = (min_ccr + max_ccr) / 2
-        adj_cap_cost = cap_cost - ccr_guess
-
-        depreciation = (adj_cap_cost - R) / N
-        rent_charge = (adj_cap_cost + R) * F
-        base_payment = depreciation + rent_charge
-        monthly_tax = round(base_payment * T, 2)
-        ltr_tax = round(q_value * T, 2)
-
-        first_payment = round(best_payment, 2)
-        ccr_tax = round(ccr_guess * T, 2)
-        total = round(ccr_guess + ccr_tax + first_payment, 2)
-
-        diff = abs(total - C)
-        if diff < best_total_diff:
-            best_total_diff = diff
-            best_guess = ccr_guess
-
-        history.append({"Iteration": iteration, "CCR_Guess": round(ccr_guess, 2), "CCR_Tax": ccr_tax, "First_Payment": first_payment, "Total": total})
-
-        if diff <= tolerance:
-            return {"CCR": round(ccr_guess, 2), "CCR_Tax": ccr_tax, "First_Payment": first_payment, "Iterations": iteration, "Total": total, "History": history}
-
-        if total > C:
-            max_ccr = ccr_guess
-        else:
-            min_ccr = ccr_guess
-
-    return {"CCR": round(best_guess, 2), "CCR_Tax": round(best_guess * T, 2), "First_Payment": round(best_payment, 2), "Iterations": iteration, "Total": round(best_guess + best_guess * T + best_payment, 2), "History": history}
+    return {"CCR": round(best_guess, 2), "CCR_Tax": round(best_guess * T, 2), "First_Payment": first_payment, "Iterations": iteration, "Total": round(best_guess + best_guess * T + first_payment, 2), "History": history}
 
 def main():
-    st.title("CCR Hybrid Loop Debug Tool")
+    st.title("CCR Linear Loop Debug Tool")
 
     C = st.number_input("Down Payment (C)", value=1000.00)
     M = st.number_input("Taxable Fees (M: Doc + Acq)", value=900.00)
@@ -94,7 +63,7 @@ def main():
     S = st.number_input("Cap Cost / MSRP (S)", value=25040.00)
     R = st.number_input("Residual (R)", value=16276.00)
 
-    if st.button("Run Hybrid Loop"):
+    if st.button("Run Downward Loop"):
         st.write(f"Running with Down Payment = ${C:.2f}")
         result = run_hybrid_ccr_loop(C, M, Q, T, F, N, S, R)
 
