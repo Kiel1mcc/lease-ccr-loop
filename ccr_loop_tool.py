@@ -4,7 +4,7 @@ import streamlit as st
 
 def run_precise_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, tolerance=0.005, max_iterations=1000):
     min_ccr = 0.0
-    max_ccr = S - R  # Cap at max possible CCR
+    max_ccr = C  # Cap search at the down payment amount
     iteration = 0
     history = []
 
