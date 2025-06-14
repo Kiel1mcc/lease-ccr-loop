@@ -30,12 +30,10 @@ def run_precise_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, tolerance=0.005,
         rent_charge = (adj_cap_cost + R) * F
 
         base_payment = depreciation + rent_charge
-        base_payment_rounded = round(base_payment, 2)
-
-        monthly_tax = round(base_payment_rounded * T, 2)
+        monthly_tax = round(base_payment * T, 2)  # Avoid pre-rounding
         ltr_tax = round(q_value * T, 2)
 
-        first_payment = round(base_payment_rounded + monthly_tax + Q + ltr_tax, 2)
+        first_payment = round(base_payment + monthly_tax + Q + ltr_tax, 2)
         ccr_tax = round(ccr_guess * T, 2)
 
         total = round(ccr_guess + ccr_tax + first_payment, 2)
