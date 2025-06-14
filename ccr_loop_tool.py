@@ -22,7 +22,10 @@ def run_hybrid_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, tolerance=0.005, 
     best_guess = None
     best_total_diff = float("inf")
 
-    while ccr_guess >= 0 and iteration < max_iterations:
+    direction = None
+    previous_diff = None
+
+    while iteration < max_iterations:
         iteration += 1
         adj_cap_cost = cap_cost - ccr_guess
 
@@ -47,12 +50,22 @@ def run_hybrid_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, tolerance=0.005, 
         if diff <= tolerance:
             return {"CCR": round(ccr_guess, 2), "CCR_Tax": ccr_tax, "First_Payment": first_payment, "Iterations": iteration, "Total": total, "History": history}
 
-        ccr_guess -= linear_step
+        # Determine direction
+        if total > C:
+            if direction == "up":
+                linear_step /= 2
+            direction = "down"
+            ccr_guess -= linear_step
+        else:
+            if direction == "down":
+                linear_step /= 2
+            direction = "up"
+            ccr_guess += linear_step
 
     return {"CCR": round(best_guess, 2), "CCR_Tax": round(best_guess * T, 2), "First_Payment": first_payment, "Iterations": iteration, "Total": round(best_guess + best_guess * T + first_payment, 2), "History": history}
 
 def main():
-    st.title("CCR Linear Loop Debug Tool")
+    st.title("CCR Hybrid Loop Debug Tool")
 
     C = st.number_input("Down Payment (C)", value=1000.00)
     M = st.number_input("Taxable Fees (M: Doc + Acq)", value=900.00)
@@ -63,7 +76,7 @@ def main():
     S = st.number_input("Cap Cost / MSRP (S)", value=25040.00)
     R = st.number_input("Residual (R)", value=16276.00)
 
-    if st.button("Run Downward Loop"):
+    if st.button("Run Hybrid Loop"):
         st.write(f"Running with Down Payment = ${C:.2f}")
         result = run_hybrid_ccr_loop(C, M, Q, T, F, N, S, R)
 
