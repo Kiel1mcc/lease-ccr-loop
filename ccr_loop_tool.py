@@ -18,7 +18,7 @@ def run_hybrid_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, tolerance=0.005, 
     first_payment_start = round(base_payment_start + monthly_tax_start + q_value + ltr_tax_start, 2)
 
     # Step 3: Set initial CCR as Down Payment - Base Payment
-    ccr_guess = C - base_payment_start
+    ccr_guess = C - first_payment_start
     best_guess = None
     best_total_diff = float("inf")
     direction = None
