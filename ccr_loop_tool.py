@@ -7,7 +7,7 @@ def run_hybrid_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, tolerance=0.005, 
     iteration = 0
     history = []
 
-    # Linear Phase
+    # Linear Phase (starts at C, steps downward)
     ccr_guess = C
     linear_floor = max(0.0, C - 5 * linear_step)
     best_guess = None
@@ -41,9 +41,9 @@ def run_hybrid_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, tolerance=0.005, 
 
         ccr_guess -= linear_step
 
-    # Binary Phase — search full range from linear floor to C
-    min_ccr = linear_floor
-    max_ccr = C
+    # Binary Phase — search up AND down from best_guess, not from fixed floor
+    min_ccr = max(0.0, best_guess - linear_step)
+    max_ccr = min(C, best_guess + linear_step)
 
     while iteration < max_iterations:
         iteration += 1
