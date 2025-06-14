@@ -10,6 +10,9 @@ def run_hybrid_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, tolerance=0.005, 
     # Linear Phase
     ccr_guess = C
     linear_floor = max(0.0, C - 5 * linear_step)
+    best_guess = None
+    best_total_diff = float("inf")
+
     while ccr_guess >= linear_floor:
         iteration += 1
         adj_cap_cost = cap_cost - ccr_guess
@@ -23,19 +26,25 @@ def run_hybrid_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, tolerance=0.005, 
         ccr_tax = round(ccr_guess * T, 2)
         total = round(ccr_guess + ccr_tax + first_payment, 2)
 
+        diff = abs(total - C)
+        if diff < best_total_diff:
+            best_total_diff = diff
+            best_guess = ccr_guess
+
         history.append({"Iteration": iteration, "CCR_Guess": round(ccr_guess, 2), "CCR_Tax": ccr_tax, "First_Payment": first_payment, "Total": total})
 
-        if abs(total - C) <= tolerance:
+        if diff <= tolerance:
             return {"CCR": round(ccr_guess, 2), "CCR_Tax": ccr_tax, "First_Payment": first_payment, "Iterations": iteration, "Total": total, "History": history}
 
-        if abs(total - C) < (linear_step * 1.5):
+        if diff < (linear_step * 1.5):
             break
 
         ccr_guess -= linear_step
 
-    # Binary Phase — search full range again
-    min_ccr = max(0.0, ccr_guess - linear_step)
+    # Binary Phase — search full range from linear floor to C
+    min_ccr = linear_floor
     max_ccr = C
+
     while iteration < max_iterations:
         iteration += 1
         ccr_guess = (min_ccr + max_ccr) / 2
@@ -50,9 +59,14 @@ def run_hybrid_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, tolerance=0.005, 
         ccr_tax = round(ccr_guess * T, 2)
         total = round(ccr_guess + ccr_tax + first_payment, 2)
 
+        diff = abs(total - C)
+        if diff < best_total_diff:
+            best_total_diff = diff
+            best_guess = ccr_guess
+
         history.append({"Iteration": iteration, "CCR_Guess": round(ccr_guess, 2), "CCR_Tax": ccr_tax, "First_Payment": first_payment, "Total": total})
 
-        if abs(total - C) <= tolerance:
+        if diff <= tolerance:
             return {"CCR": round(ccr_guess, 2), "CCR_Tax": ccr_tax, "First_Payment": first_payment, "Iterations": iteration, "Total": total, "History": history}
 
         if total > C:
@@ -60,7 +74,7 @@ def run_hybrid_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, tolerance=0.005, 
         else:
             min_ccr = ccr_guess
 
-    return {"CCR": None, "CCR_Tax": None, "First_Payment": None, "Iterations": iteration, "Total": None, "History": history}
+    return {"CCR": round(best_guess, 2), "CCR_Tax": round(best_guess * T, 2), "First_Payment": first_payment, "Iterations": iteration, "Total": round(best_guess + best_guess * T + first_payment, 2), "History": history}
 
 def main():
     st.title("CCR Hybrid Loop Debug Tool")
