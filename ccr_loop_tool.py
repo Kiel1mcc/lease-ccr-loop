@@ -1,26 +1,16 @@
 import streamlit as st
 
-# CCR Linear Search from Down Payment
+# Refined Binary CCR Loop (with iteration tracking and smart bounds)
 
-def run_downward_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, step=0.01, tolerance=0.005):
-    """
-    Inputs:
-    C = Total Cash Down (incl. lease cash if applied)
-    M = Taxable Fees (Doc + Acq)
-    Q = Non-taxable LTR Fee
-    T = Tax Rate (e.g. 0.0725)
-    F = Money Factor
-    N = Term in Months
-    S = MSRP / Cap Cost
-    R = Residual Value
-    """
-
+def run_precise_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, tolerance=0.005, max_iterations=1000):
+    min_ccr = 0.0
+    max_ccr = C  # Cap at down payment
     iteration = 0
     history = []
 
-    ccr_guess = round(C, 2)
-    while ccr_guess >= 0:
+    while iteration < max_iterations:
         iteration += 1
+        ccr_guess = round((min_ccr + max_ccr) / 2, 6)
 
         cap_cost = S + M
         adj_cap_cost = cap_cost - ccr_guess
@@ -55,7 +45,10 @@ def run_downward_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, step=0.01, tole
                 "History": history
             }
 
-        ccr_guess = round(ccr_guess - step, 2)
+        if total > C:
+            max_ccr = ccr_guess
+        else:
+            min_ccr = ccr_guess
 
     return {
         "CCR": None,
@@ -67,7 +60,7 @@ def run_downward_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, step=0.01, tole
     }
 
 def main():
-    st.title("CCR Linear Loop Debug Tool")
+    st.title("CCR Binary Loop Debug Tool")
 
     C = st.number_input("Down Payment (C)", value=1000.00)
     M = st.number_input("Taxable Fees (M: Doc + Acq)", value=900.00)
@@ -78,9 +71,9 @@ def main():
     S = st.number_input("Cap Cost / MSRP (S)", value=25040.00)
     R = st.number_input("Residual (R)", value=16276.00)
 
-    if st.button("Run Downward Loop"):
+    if st.button("Run Binary Loop"):
         st.write(f"Running with Down Payment = ${C:.2f}")
-        result = run_downward_ccr_loop(C, M, Q, T, F, N, S, R)
+        result = run_precise_ccr_loop(C, M, Q, T, F, N, S, R)
 
         if result["CCR"] is not None:
             st.success("Loop completed!")
@@ -100,7 +93,7 @@ def main():
                         f"Total = ${row['Total']:.2f}"
                     )
         else:
-            st.error("Loop failed to converge within downward steps.")
+            st.error("Loop failed to converge with binary search.")
 
 if __name__ == "__main__":
     main()
