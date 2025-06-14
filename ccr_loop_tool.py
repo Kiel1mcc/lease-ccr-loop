@@ -27,14 +27,15 @@ def run_hybrid_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, tolerance=0.005, 
         if abs(total - C) <= tolerance:
             return {"CCR": round(ccr_guess, 2), "CCR_Tax": ccr_tax, "First_Payment": first_payment, "Iterations": iteration, "Total": total, "History": history}
 
-        if total < C:
-            break  # Enter binary search from here
+        # Stop when we're within a small range to allow binary both directions
+        if abs(total - C) < (linear_step * 1.5):
+            break
 
         ccr_guess -= linear_step
 
     # Binary Phase
     min_ccr = ccr_guess
-    max_ccr = ccr_guess + linear_step
+    max_ccr = min(C, ccr_guess + linear_step * 2)
     while iteration < max_iterations:
         iteration += 1
         ccr_guess = (min_ccr + max_ccr) / 2
