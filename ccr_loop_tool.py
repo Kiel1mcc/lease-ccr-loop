@@ -33,9 +33,9 @@ def run_hybrid_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, tolerance=0.005, 
 
         ccr_guess -= linear_step
 
-    # Binary Phase
-    min_ccr = ccr_guess
-    max_ccr = min(C, ccr_guess + linear_step * 2)
+    # Binary Phase — search full range again
+    min_ccr = 0.0
+    max_ccr = C
     while iteration < max_iterations:
         iteration += 1
         ccr_guess = (min_ccr + max_ccr) / 2
