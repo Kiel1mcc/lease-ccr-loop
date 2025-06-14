@@ -1,66 +1,68 @@
 import streamlit as st
 
-# Refined Binary CCR Loop (with iteration tracking and smart bounds)
+# Hybrid CCR Loop: Start linear then switch to binary when close
 
-def run_precise_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, tolerance=0.005, max_iterations=1000):
-    min_ccr = 0.0
-    max_ccr = C  # Cap search at the down payment amount
+def run_hybrid_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, tolerance=0.005, linear_step=100.0, max_iterations=1000):
+    cap_cost = S + M
     iteration = 0
     history = []
 
-    while iteration < max_iterations:
+    # Linear Phase
+    ccr_guess = C
+    while ccr_guess >= 0:
         iteration += 1
-        ccr_guess = round((min_ccr + max_ccr) / 2, 6)
-
-        cap_cost = S + M
         adj_cap_cost = cap_cost - ccr_guess
 
         depreciation = (adj_cap_cost - R) / N
         rent_charge = (adj_cap_cost + R) * F
-
         base_payment = depreciation + rent_charge
         monthly_tax = round(base_payment * T, 2)
         ltr_tax = round(q_value * T, 2)
-
         first_payment = round(base_payment + monthly_tax + Q + ltr_tax, 2)
         ccr_tax = round(ccr_guess * T, 2)
-
         total = round(ccr_guess + ccr_tax + first_payment, 2)
 
-        history.append({
-            "Iteration": iteration,
-            "CCR_Guess": round(ccr_guess, 2),
-            "CCR_Tax": ccr_tax,
-            "First_Payment": first_payment,
-            "Total": total
-        })
+        history.append({"Iteration": iteration, "CCR_Guess": round(ccr_guess, 2), "CCR_Tax": ccr_tax, "First_Payment": first_payment, "Total": total})
 
         if abs(total - C) <= tolerance:
-            return {
-                "CCR": round(ccr_guess, 2),
-                "CCR_Tax": ccr_tax,
-                "First_Payment": first_payment,
-                "Iterations": iteration,
-                "Total": total,
-                "History": history
-            }
+            return {"CCR": round(ccr_guess, 2), "CCR_Tax": ccr_tax, "First_Payment": first_payment, "Iterations": iteration, "Total": total, "History": history}
+
+        if total < C:
+            break  # Enter binary search from here
+
+        ccr_guess -= linear_step
+
+    # Binary Phase
+    min_ccr = ccr_guess
+    max_ccr = ccr_guess + linear_step
+    while iteration < max_iterations:
+        iteration += 1
+        ccr_guess = (min_ccr + max_ccr) / 2
+        adj_cap_cost = cap_cost - ccr_guess
+
+        depreciation = (adj_cap_cost - R) / N
+        rent_charge = (adj_cap_cost + R) * F
+        base_payment = depreciation + rent_charge
+        monthly_tax = round(base_payment * T, 2)
+        ltr_tax = round(q_value * T, 2)
+        first_payment = round(base_payment + monthly_tax + Q + ltr_tax, 2)
+        ccr_tax = round(ccr_guess * T, 2)
+        total = round(ccr_guess + ccr_tax + first_payment, 2)
+
+        history.append({"Iteration": iteration, "CCR_Guess": round(ccr_guess, 2), "CCR_Tax": ccr_tax, "First_Payment": first_payment, "Total": total})
+
+        if abs(total - C) <= tolerance:
+            return {"CCR": round(ccr_guess, 2), "CCR_Tax": ccr_tax, "First_Payment": first_payment, "Iterations": iteration, "Total": total, "History": history}
 
         if total > C:
             max_ccr = ccr_guess
         else:
             min_ccr = ccr_guess
 
-    return {
-        "CCR": None,
-        "CCR_Tax": None,
-        "First_Payment": None,
-        "Iterations": iteration,
-        "Total": None,
-        "History": history
-    }
+    return {"CCR": None, "CCR_Tax": None, "First_Payment": None, "Iterations": iteration, "Total": None, "History": history}
 
 def main():
-    st.title("CCR Binary Loop Debug Tool")
+    st.title("CCR Hybrid Loop Debug Tool")
 
     C = st.number_input("Down Payment (C)", value=1000.00)
     M = st.number_input("Taxable Fees (M: Doc + Acq)", value=900.00)
@@ -71,9 +73,9 @@ def main():
     S = st.number_input("Cap Cost / MSRP (S)", value=25040.00)
     R = st.number_input("Residual (R)", value=16276.00)
 
-    if st.button("Run Binary Loop"):
+    if st.button("Run Hybrid Loop"):
         st.write(f"Running with Down Payment = ${C:.2f}")
-        result = run_precise_ccr_loop(C, M, Q, T, F, N, S, R)
+        result = run_hybrid_ccr_loop(C, M, Q, T, F, N, S, R)
 
         if result["CCR"] is not None:
             st.success("Loop completed!")
@@ -93,7 +95,7 @@ def main():
                         f"Total = ${row['Total']:.2f}"
                     )
         else:
-            st.error("Loop failed to converge with binary search.")
+            st.error("Loop failed to converge within max iterations.")
 
 if __name__ == "__main__":
     main()
