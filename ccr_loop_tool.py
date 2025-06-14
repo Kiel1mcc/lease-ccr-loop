@@ -48,7 +48,7 @@ def run_hybrid_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, tolerance=0.005, 
             best_guess = ccr_guess
 
         if diff <= tolerance:
-            return {"CCR": round(ccr_guess, 2), "CCR_Tax": ccr_tax, "First_Payment": first_payment, "Iterations": iteration, "Total": total, "History": history, "First_Payment_Start": first_payment_start}
+            return {"CCR": round(ccr_guess, 2), "CCR_Tax": ccr_tax, "First_Payment": first_payment, "Iterations": iteration, "Total": total, "History": history, "First_Payment_Start": first_payment_start, "Base_Payment_Start": round(base_payment_start, 2)}
 
         # Adjust CCR Guess
         if total > C:
@@ -62,7 +62,7 @@ def run_hybrid_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, tolerance=0.005, 
             direction = "up"
             ccr_guess += linear_step
 
-    return {"CCR": round(best_guess, 2), "CCR_Tax": round(best_guess * T, 2), "First_Payment": first_payment, "Iterations": iteration, "Total": round(best_guess + best_guess * T + first_payment, 2), "History": history, "First_Payment_Start": first_payment_start}
+    return {"CCR": round(best_guess, 2), "CCR_Tax": round(best_guess * T, 2), "First_Payment": first_payment, "Iterations": iteration, "Total": round(best_guess + best_guess * T + first_payment, 2), "History": history, "First_Payment_Start": first_payment_start, "Base_Payment_Start": round(base_payment_start, 2)}
 
 def main():
     st.title("CCR Hybrid Loop Debug Tool")
@@ -82,6 +82,7 @@ def main():
 
         if result["CCR"] is not None:
             st.success("Loop completed!")
+            st.write(f"**Base Payment Estimate:** ${result['Base_Payment_Start']:.2f}")
             st.write(f"**Starting First Payment Estimate:** ${result['First_Payment_Start']:.2f}")
             st.write(f"**CCR:** ${result['CCR']:.2f}")
             st.write(f"**CCR Tax:** ${result['CCR_Tax']:.2f}")
