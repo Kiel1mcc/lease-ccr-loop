@@ -15,6 +15,7 @@ def run_precise_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, tolerance=0.005,
     R = Residual Value
     """
 
+    min_ccr = 0.0
     max_ccr = min(C, S - R)
     iteration = 0
 
@@ -22,7 +23,7 @@ def run_precise_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, tolerance=0.005,
 
     while iteration < max_iterations:
         iteration += 1
-        ccr_guess = max_ccr - ((iteration - 1) * 0.01)  # decrement step
+        ccr_guess = min_ccr + ((max_ccr - min_ccr) * (1 - iteration / max_iterations))
         if ccr_guess < 0:
             break
 
