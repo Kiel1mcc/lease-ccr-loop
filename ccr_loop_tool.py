@@ -19,6 +19,8 @@ def run_precise_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, tolerance=0.005,
     max_ccr = S - R
     iteration = 0
 
+    history = []
+
     while iteration < max_iterations:
         iteration += 1
         ccr_guess = (min_ccr + max_ccr) / 2
@@ -38,13 +40,22 @@ def run_precise_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, tolerance=0.005,
 
         total = round(ccr_guess + ccr_tax + first_payment, 2)
 
+        history.append({
+            "Iteration": iteration,
+            "CCR_Guess": round(ccr_guess, 2),
+            "CCR_Tax": ccr_tax,
+            "First_Payment": first_payment,
+            "Total": total
+        })
+
         if abs(total - C) <= tolerance:
             return {
                 "CCR": round(ccr_guess, 2),
                 "CCR_Tax": ccr_tax,
                 "First_Payment": first_payment,
                 "Iterations": iteration,
-                "Total": total
+                "Total": total,
+                "History": history
             }
 
         if total > C:
@@ -57,7 +68,8 @@ def run_precise_ccr_loop(C, M, Q, T, F, N, S, R, q_value=62.50, tolerance=0.005,
         "CCR_Tax": None,
         "First_Payment": None,
         "Iterations": iteration,
-        "Total": None
+        "Total": None,
+        "History": history
     }
 
 
@@ -83,6 +95,16 @@ def main():
             st.write(f"**First Payment:** ${result['First_Payment']:.2f}")
             st.write(f"**Iterations:** {result['Iterations']}")
             st.write(f"**Total (Matched):** ${result['Total']:.2f}")
+
+            with st.expander("🔍 Show Iteration History"):
+                for row in result["History"]:
+                    st.write(
+                        f"Iteration {row['Iteration']:>2}: "
+                        f"CCR = ${row['CCR_Guess']:.2f}, "
+                        f"CCR Tax = ${row['CCR_Tax']:.2f}, "
+                        f"First Payment = ${row['First_Payment']:.2f}, "
+                        f"Total = ${row['Total']:.2f}"
+                    )
         else:
             st.error("Loop failed to converge within max iterations.")
 
