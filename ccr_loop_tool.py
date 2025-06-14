@@ -79,6 +79,7 @@ def main():
     R = st.number_input("Residual (R)", value=16276.00)
 
     if st.button("Run Downward Loop"):
+        st.write(f"Running with Down Payment = ${C:.2f}")
         result = run_downward_ccr_loop(C, M, Q, T, F, N, S, R)
 
         if result["CCR"] is not None:
